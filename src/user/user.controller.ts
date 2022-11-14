@@ -1,12 +1,10 @@
 import { User } from '@app/decorators/user.decorator';
-import { IExpressRequest } from '@app/types/express.request.interface';
 import {
 	Body,
 	Controller,
 	Get,
 	Post,
 	Put,
-	Req,
 	UseGuards,
 	UsePipes,
 	ValidationPipe,
