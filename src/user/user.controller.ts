@@ -1,4 +1,4 @@
-import { User } from '@app/decorators/user.decorator';
+import { User } from '@app/user/decorators/user.decorator';
 import {
 	Body,
 	Controller,

@@ -11,7 +11,7 @@ export class AuthMiddleware implements NestMiddleware {
 
 	async use(
 		req: IExpressRequest,
-		res: Response,
+		_: Response,
 		next: NextFunction,
 	): Promise<void> {
 		if (!req.headers.authorization) {
