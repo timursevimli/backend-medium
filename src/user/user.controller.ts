@@ -1,3 +1,4 @@
+import { BackendValidationPipe } from '@app/shared/pipes/backendValidation.pipe';
 import { User } from '@app/user/decorators/user.decorator';
 import {
 	Body,
@@ -22,14 +23,14 @@ export class UserController {
 	constructor(private readonly userService: UserService) {}
 
 	@Post('users')
-	@UsePipes(new ValidationPipe())
+	@UsePipes(new BackendValidationPipe())
 	async register(@Body() registerDto: RegisterDto): Promise<IUserResponse> {
 		const user = await this.userService.register(registerDto);
 		return this.userService.userResponseBuilder(user);
 	}
 
 	@Post('users/login')
-	@UsePipes(new ValidationPipe())
+	@UsePipes(new BackendValidationPipe())
 	async login(@Body() loginDto: LoginDto): Promise<IUserResponse> {
 		const user = await this.userService.login(loginDto);
 		return this.userService.userResponseBuilder(user);

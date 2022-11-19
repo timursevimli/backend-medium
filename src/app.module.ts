@@ -5,13 +5,14 @@ import {
 	RequestMethod,
 } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import ormConfig from '@app/configs/orm.config';
 import { AppController } from '@app/app.controller';
 import { AppService } from '@app/app.service';
 import { TagsModule } from '@app/tags/tags.module';
-import ormConfig from '@app/configs/orm.config';
-import { UserModule } from './user/user.module';
-import { AuthMiddleware } from './user/middlewares/auth.middleware';
-import { ArticleModule } from './article/article.module';
+import { UserModule } from '@app/user/user.module';
+import { AuthMiddleware } from '@app/user/middlewares/auth.middleware';
+import { ArticleModule } from '@app/article/article.module';
+import { ProfileModule } from '@app/profile/profile.module';
 
 @Module({
 	imports: [
@@ -19,6 +20,7 @@ import { ArticleModule } from './article/article.module';
 		TagsModule,
 		UserModule,
 		ArticleModule,
+		ProfileModule,
 	],
 	controllers: [AppController],
 	providers: [AppService],

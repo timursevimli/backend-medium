@@ -20,7 +20,9 @@
     "typeorm": "typeorm-ts-node-esm -d src/configs/orm.source.ts",
     "db:drop": "yarn typeorm schema:drop",
     "db:create": "yarn typeorm migration:generate",
-    "db:migrate": "yarn typeorm migration:run"
+    "db:migrate": "yarn typeorm migration:run",
+    "db:seed": "typeorm-ts-node-esm -d src/configs/orm.seed.source.ts migration:run",
+    "db:reclean": "yarn db:drop && yarn db:migrate && yarn db:seed"
   },
   "dependencies": {
     "@nestjs/common": "^9.0.0",

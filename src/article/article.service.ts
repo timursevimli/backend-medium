@@ -1,3 +1,4 @@
+import { FollowEntity } from '@app/profile/follow.entity';
 import { UserEntity } from '@app/user/user.entity';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -15,6 +16,8 @@ export class ArticleService {
 		private readonly articleRepository: Repository<ArticleEntity>,
 		@InjectRepository(UserEntity)
 		private readonly userRepository: Repository<UserEntity>,
+		@InjectRepository(FollowEntity)
+		private readonly followRepository: Repository<FollowEntity>,
 		private dataSource: DataSource,
 	) {}
 
@@ -89,7 +92,7 @@ export class ArticleService {
 				where: { id: currentUserId },
 				relations: ['favorites'],
 			});
-			favoriteIds = currentUser.articles.map((favorite) => favorite.id);
+			favoriteIds = currentUser.favorites.map((favorite) => favorite.id);
 		}
 
 		const articles = await queryBuilder.getMany();
@@ -216,5 +219,45 @@ export class ArticleService {
 		}
 
 		return article;
+	}
+
+	async getFeed(
+		currentUserId: number,
+		query: unknown,
+	): Promise<IArticlesResponse> {
+		const follows = await this.followRepository.find({
+			where: { followerId: currentUserId },
+		});
+
+		if (follows.length === 0) {
+			return { articles: [], articlesCount: 0 };
+		}
+
+		const followingUserIds: number[] = follows.map(
+			(follow) => follow.followingId,
+		);
+
+		const queryBuilder = this.dataSource
+			.getRepository(ArticleEntity)
+			.createQueryBuilder('articles')
+			.leftJoinAndSelect('articles.author', 'author')
+			.where('articles.authorId IN (:...id)', {
+				id: followingUserIds,
+			})
+			.orderBy('articles.createdAt', 'DESC');
+
+		const articlesCount = await queryBuilder.getCount();
+
+		if (query['limit']) {
+			queryBuilder.limit(query['limit']);
+		}
+
+		if (query['offset']) {
+			queryBuilder.offset(query['offset']);
+		}
+
+		const articles = await queryBuilder.getMany();
+
+		return { articles, articlesCount };
 	}
 }
