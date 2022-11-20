@@ -8,7 +8,6 @@ import {
 	Put,
 	UseGuards,
 	UsePipes,
-	ValidationPipe,
 } from '@nestjs/common';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -24,14 +23,16 @@ export class UserController {
 
 	@Post('users')
 	@UsePipes(new BackendValidationPipe())
-	async register(@Body() registerDto: RegisterDto): Promise<IUserResponse> {
+	async register(
+		@Body('user') registerDto: RegisterDto,
+	): Promise<IUserResponse> {
 		const user = await this.userService.register(registerDto);
 		return this.userService.userResponseBuilder(user);
 	}
 
 	@Post('users/login')
 	@UsePipes(new BackendValidationPipe())
-	async login(@Body() loginDto: LoginDto): Promise<IUserResponse> {
+	async login(@Body('user') loginDto: LoginDto): Promise<IUserResponse> {
 		const user = await this.userService.login(loginDto);
 		return this.userService.userResponseBuilder(user);
 	}

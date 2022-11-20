@@ -42,7 +42,7 @@ export class UserService {
 
 	async register(registerDto: RegisterDto): Promise<UserEntity> {
 		const errorResponse = {
-			errors: {},
+			errors: { EmailOrUsername: 'has already been taken' },
 		};
 
 		const checkUserByEmail = await this.userRepository.findOne({

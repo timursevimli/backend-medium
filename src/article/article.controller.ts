@@ -13,11 +13,12 @@ import {
 	Query,
 	UseGuards,
 	UsePipes,
-	ValidationPipe,
 } from '@nestjs/common';
 import { DeleteResult } from 'typeorm';
 import { ArticleService } from './article.service';
+import { CommentEntity } from './comment.entity';
 import { CreateArticleDto } from './dto/create.article.dto';
+import { CreateCommentDto } from './dto/create.comment.dto';
 import { UpdateArticleDto } from './dto/update.article.dto';
 import { IArticleResponse } from './types/article.response.interface';
 import { IArticlesResponse } from './types/articles.response.interface';
@@ -33,14 +34,6 @@ export class ArticleController {
 		@Query() query: unknown,
 	): Promise<IArticlesResponse> {
 		return await this.articleService.getFeed(currentUserId, query);
-	}
-
-	@Get()
-	async getArticles(
-		@User('id') currentUserId: number,
-		@Query() query: unknown,
-	): Promise<IArticlesResponse> {
-		return await this.articleService.getArticles(currentUserId, query);
 	}
 
 	@Get(':slug')
@@ -113,5 +106,50 @@ export class ArticleController {
 			slug,
 		);
 		return this.articleService.buildArticleResponse(article);
+	}
+
+	@Post(':slug/comments')
+	@UseGuards(AuthGuard)
+	@UsePipes(new BackendValidationPipe())
+	async addComment(
+		@Body('comment') createCommentDto: CreateCommentDto,
+		@Param('slug') slug: string,
+		@User('id') currentUserId: number,
+	): Promise<{ comment: CommentEntity }> {
+		return await this.articleService.addComment(
+			createCommentDto,
+			slug,
+			currentUserId,
+		);
+	}
+
+	@Get(':slug/comments')
+	@UseGuards(AuthGuard)
+	async getComments(
+		@Param('slug') slug: string,
+	): Promise<{ comments: CommentEntity[] }> {
+		return await this.articleService.getComments(slug);
+	}
+
+	@Delete(':slug/comments/:id')
+	@UseGuards(AuthGuard)
+	async deleteComment(
+		@User('id') currentUserId: number,
+		@Param('slug') slug: string,
+		@Param('id') commentId: number,
+	): Promise<DeleteResult> {
+		return await this.articleService.deleteComment(
+			currentUserId,
+			slug,
+			commentId,
+		);
+	}
+
+	@Get()
+	async getArticles(
+		@User('id') currentUserId: number,
+		@Query() query: unknown,
+	): Promise<IArticlesResponse> {
+		return await this.articleService.getArticles(currentUserId, query);
 	}
 }

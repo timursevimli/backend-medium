@@ -4,7 +4,9 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, DeleteResult, Repository } from 'typeorm';
 import { ArticleEntity } from './article.entity';
+import { CommentEntity } from './comment.entity';
 import { CreateArticleDto } from './dto/create.article.dto';
+import { CreateCommentDto } from './dto/create.comment.dto';
 import { UpdateArticleDto } from './dto/update.article.dto';
 import { IArticleResponse } from './types/article.response.interface';
 import { IArticlesResponse } from './types/articles.response.interface';
@@ -18,6 +20,8 @@ export class ArticleService {
 		private readonly userRepository: Repository<UserEntity>,
 		@InjectRepository(FollowEntity)
 		private readonly followRepository: Repository<FollowEntity>,
+		@InjectRepository(CommentEntity)
+		private readonly commentRepository: Repository<CommentEntity>,
 		private dataSource: DataSource,
 	) {}
 
@@ -37,6 +41,10 @@ export class ArticleService {
 		currentUserId: number,
 		query: unknown,
 	): Promise<IArticlesResponse> {
+		const errorResponse = {
+			errors: { NotFound: 'Author not found' },
+		};
+
 		const queryBuilder = this.dataSource
 			.getRepository(ArticleEntity)
 			.createQueryBuilder('articles')
@@ -65,7 +73,7 @@ export class ArticleService {
 			});
 
 			if (!author) {
-				throw new HttpException('Author not found', HttpStatus.NOT_FOUND);
+				throw new HttpException(errorResponse, HttpStatus.UNPROCESSABLE_ENTITY);
 			}
 
 			queryBuilder.andWhere('articles.authorId = :id', { id: author.id });
@@ -105,13 +113,17 @@ export class ArticleService {
 	}
 
 	async findBySlug(slug: string): Promise<ArticleEntity> {
+		const errorResponse = {
+			errors: { Error: 'Article not found' },
+		};
+
 		const article = await this.articleRepository.findOne({
 			where: { slug },
 			relations: ['author'],
 		});
 
 		if (!article) {
-			throw new HttpException('Article not found', HttpStatus.NOT_FOUND);
+			throw new HttpException(errorResponse, HttpStatus.NOT_FOUND);
 		}
 
 		return article;
@@ -135,13 +147,15 @@ export class ArticleService {
 	}
 
 	async delete(currentUserId: number, slug: string): Promise<DeleteResult> {
+		const responseError = {
+			errors: {
+				Permission: 'U need permission for delete this article',
+			},
+		};
 		const article = await this.findBySlug(slug);
 
 		if (article.author.id !== currentUserId) {
-			throw new HttpException(
-				'U need permission for delete this article',
-				HttpStatus.CONFLICT,
-			);
+			throw new HttpException(responseError, HttpStatus.CONFLICT);
 		}
 		//or return await this.articleEntity.remove(article);
 		return await this.articleRepository.delete({ slug });
@@ -152,13 +166,14 @@ export class ArticleService {
 		currentUserId: number,
 		updateArticleDto: UpdateArticleDto,
 	): Promise<ArticleEntity> {
+		const errorResponse = {
+			errors: { permission: 'U are need permission for update this article' },
+		};
+
 		const article = await this.findBySlug(slug);
 
 		if (article.author.id !== currentUserId) {
-			throw new HttpException(
-				'U need permission for update this article',
-				HttpStatus.CONFLICT,
-			);
+			throw new HttpException(errorResponse, HttpStatus.CONFLICT);
 		}
 
 		if (updateArticleDto.title) {
@@ -259,5 +274,58 @@ export class ArticleService {
 		const articles = await queryBuilder.getMany();
 
 		return { articles, articlesCount };
+	}
+
+	async addComment(
+		createCommentDto: CreateCommentDto,
+		slug: string,
+		currentUserId: number,
+	): Promise<{ comment: CommentEntity }> {
+		const article = await this.findBySlug(slug);
+
+		const newComment = new CommentEntity();
+		Object.assign(newComment, createCommentDto);
+		newComment.articleId = article.id;
+		newComment.commentorId = currentUserId;
+
+		await this.commentRepository.save(newComment);
+
+		return { comment: newComment };
+	}
+
+	async getComments(slug: string): Promise<{ comments: CommentEntity[] }> {
+		const article = await this.findBySlug(slug);
+
+		const queryBuilder = this.dataSource
+			.getRepository(CommentEntity)
+			.createQueryBuilder('comments')
+			.andWhere('comments.articleId = :id', { id: article.id })
+			.orderBy('comments.createdAt', 'DESC');
+
+		const comments = await queryBuilder.getMany();
+
+		return { comments };
+	}
+
+	async deleteComment(
+		currentUserId: number,
+		slug: string,
+		commentId: number,
+	): Promise<DeleteResult> {
+		const errorResponse = {
+			errors: { permission: 'U need permission for delete this comment' },
+		};
+
+		await this.findBySlug(slug);
+
+		const comment = await this.commentRepository.findOne({
+			where: { id: commentId },
+		});
+
+		if (comment.commentorId !== currentUserId) {
+			throw new HttpException(errorResponse, HttpStatus.UNPROCESSABLE_ENTITY);
+		}
+
+		return await this.commentRepository.delete({ id: comment.id });
 	}
 }
