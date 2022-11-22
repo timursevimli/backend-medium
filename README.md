@@ -29,15 +29,12 @@
 ## Installation
 
 ```bash
-$ npm install
+$ yarn install
 ```
 
 ## Running the app
 
 ```bash
-# install
-$ yarn
-
 # development with watch mode
 $ yarn start
 ```
